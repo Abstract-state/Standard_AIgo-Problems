@@ -1,0 +1,81 @@
+#include <iostream>
+#include <vector>
+#include <algorithm>
+
+using namespace std;
+
+const int INF = 1e9;
+
+int calculateDistance(const vector<vector<int>>& graph, const vector<int>& path) {
+    int distance = 0;
+    int n = graph.size();
+    
+    for (int i = 0; i < n - 1; ++i) {
+        int src = path[i];
+        int dest = path[i + 1];
+        distance += graph[src][dest];
+    }
+    
+    int lastCity = path[n - 1];
+    int firstCity = path[0];
+    distance += graph[lastCity][firstCity];
+    
+    return distance;
+}
+
+void printPath(const vector<int>& path) {
+    int n = path.size();
+    for (int i = 0; i < n; ++i) {
+        cout << path[i] << " -> ";
+    }
+    cout << path[0] << endl;
+}
+
+void Travel_Cost(const vector<vector<int>>& graph) {
+    int n = graph.size();
+    vector<int> path(n);
+    for (int i = 0; i < n; ++i) {
+        path[i] = i;
+    }
+    
+    int minDistance = INF;
+    vector<int> minPath;
+    int iteration = 0;
+    
+    do {
+        int distance = calculateDistance(graph, path);
+        
+        cout << "Iteration: " << iteration << ", Path: ";
+        printPath(path);
+        cout << "Cost: " << distance << endl;
+        
+        if (distance < minDistance) {
+            minDistance = distance;
+            minPath = path;
+        }
+        
+        iteration++;
+    } while (next_permutation(path.begin() + 1, path.end()));
+    
+    cout << "Minimum Distance: " << minDistance << endl;
+    cout << "Minimum Path: ";
+    printPath(minPath);
+}
+
+int main() {
+    int n;
+    cout << "Enter the number of cities: ";
+    cin >> n;
+    
+    vector<vector<int>> graph(n, vector<int>(n));
+    cout << "Enter the distance matrix:" << endl;
+    for (int i = 0; i < n; ++i) {
+        for (int j = 0; j < n; ++j) {
+            cin >> graph[i][j];
+        }
+    }
+    
+    Travel_Cost(graph);
+    
+    return 0;
+}
