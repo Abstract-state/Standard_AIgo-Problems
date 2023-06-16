@@ -1,0 +1,302 @@
+#include <iostream>
+#include <vector>
+#include <queue>
+#include <algorithm>
+
+using namespace std;
+
+// Class to represent a state in the search space
+class State {
+public:
+    int city;
+    int cost;
+    int heuristic;
+    vector<int> path;
+};
+
+// Custom comparator for priority queue based on total cost (UCS)
+class CompareCost {
+public:
+    bool operator()(const State& s1, const State& s2) {
+        return s1.cost > s2.cost;
+    }
+};
+
+// Custom comparator for priority queue based on heuristic (GBFS)
+class CompareHeuristic {
+public:
+    bool operator()(const State& s1, const State& s2) {
+        if (s1.heuristic == s2.heuristic) {
+            return s1.path.size() > s2.path.size(); // Compare path length for tie-breaker
+        }
+        return s1.heuristic > s2.heuristic;
+    }
+};
+
+// Comparator for A* based on total cost
+class CompareCostAStar {
+public:
+    bool operator()(const State& s1, const State& s2) {
+        int f1 = s1.cost + s1.heuristic;
+        int f2 = s2.cost + s2.heuristic;
+        return f1 > f2;
+    }
+};
+
+// Function to calculate the total cost given a path and a distance matrix
+int computeTotalCost(const vector<vector<int>>& distanceMatrix, const vector<int>& path) {
+    int totalCost = 0;
+    for (unsigned int i = 0; i < path.size() - 1; i++) {
+        int currentCity = path[i];
+        int nextCity = path[i + 1];
+        totalCost += distanceMatrix[currentCity][nextCity];
+    }
+    return totalCost;
+}
+
+// Class to solve the Traveling Salesman Problem using UCS
+class UCS {
+public:
+    void solve(const vector<vector<int>>& distanceMatrix) {
+        unsigned int n = distanceMatrix.size();  // Number of cities
+
+        // Priority queue for UCS
+        priority_queue<State, vector<State>, CompareCost> pq;
+
+        // Create initial state
+        State initial;
+        initial.city = 0;
+        initial.cost = 0;
+        initial.path.push_back(0);
+
+        // Push initial state to the priority queue
+        pq.push(initial);
+
+        while (!pq.empty()) {
+            State current = pq.top();
+            pq.pop();
+
+            // Display the current state information
+            cout << "Current Node: " << current.city;
+            cout << " | Cost: " << current.cost;
+            cout << " | Path: ";
+            for (int city : current.path) {
+                cout << city << " ";
+            }
+            cout << endl;
+
+            // Display the queue content
+            cout << "Queue: ";
+            priority_queue<State, vector<State>, CompareCost> pqCopy = pq;
+            while (!pqCopy.empty()) {
+                State state = pqCopy.top();
+                pqCopy.pop();
+                cout << "(" << state.city << ", " << state.cost << ") ";
+            }
+            cout << endl;
+
+            // Check if all cities have been visited
+            if (current.path.size() == n) {
+                current.path.push_back(0);  // Return to city 0
+
+                // Print the optimal path
+                cout << "Optimal Path (UCS): ";
+                for (int city : current.path) {
+                    cout << city << " ";
+                }
+                cout << endl;
+
+                cout << "Total Cost: " << computeTotalCost(distanceMatrix, current.path) << endl;
+                return;
+            }
+
+            // Expand the current state
+            for (unsigned int i = 0; i < n; i++) {
+                // Check if the city has not been visited
+                if (find(current.path.begin(), current.path.end(), i) == current.path.end()) {
+                    State nextState;
+                    nextState.city = i;
+                    nextState.cost = current.cost + distanceMatrix[current.city][i];
+                    nextState.path = current.path;
+                    nextState.path.push_back(i);
+
+                    // Push the next state to the priority queue
+                    pq.push(nextState);
+                }
+            }
+        }
+
+        cout << "No solution found!" << endl;
+    }
+};
+
+// Class to solve the Traveling Salesman Problem using GBFS
+class GBFS {
+public:
+    void solve(const vector<vector<int>>& distanceMatrix, const vector<int>& heuristicValues) {
+        unsigned int n = distanceMatrix.size();  
+        
+        
+        priority_queue<State, vector<State>, CompareHeuristic> pq;
+
+        State initial;
+        initial.city = 0;
+        initial.heuristic = heuristicValues[0];
+        initial.path.push_back(0);
+
+        pq.push(initial);
+
+        while (!pq.empty()) {
+            State current = pq.top();
+            pq.pop();
+
+            cout << "Current Node: " << current.city;
+            cout << " | Heuristic: " << current.heuristic;
+            cout << " | Path: ";
+            for (int city : current.path) {
+                cout << city << " ";
+            }
+            cout << endl;
+
+            cout << "Queue: ";
+            priority_queue<State, vector<State>, CompareHeuristic> pqCopy = pq;
+            while (!pqCopy.empty()) {
+                State state = pqCopy.top();
+                pqCopy.pop();
+                cout << "(" << state.city << ", " << state.heuristic << ") ";
+            }
+            cout << endl;
+
+            if (current.path.size() == n) {
+                current.path.push_back(0);  
+
+                cout << "Optimal Path (GBFS): ";
+                for (int city : current.path) {
+                    cout << city << " ";
+                }
+                cout << endl;
+
+                cout << "Total Cost: " << computeTotalCost(distanceMatrix, current.path) << endl;
+                return;
+            }
+
+            for (unsigned int i = 0; i < n; i++) {
+                
+                if (find(current.path.begin(), current.path.end(), i) == current.path.end()) {
+                    State nextState;
+                    nextState.city = i;
+                    nextState.heuristic = heuristicValues[nextState.city];
+                    nextState.path = current.path;
+                    nextState.path.push_back(i);
+
+                    
+                    pq.push(nextState);
+                }
+            }
+        }
+
+        cout << "No solution found!" << endl;
+    }
+};
+
+// Class to solve the Traveling Salesman Problem using A*
+class AStar {
+public:
+    void solve(const vector<vector<int>>& distanceMatrix, const vector<int>& heuristicValues) {
+        unsigned int n = distanceMatrix.size(); 
+
+        priority_queue<State, vector<State>, CompareCostAStar> pq;
+
+        State initial;
+        initial.city = 0;
+        initial.cost = 0;
+        initial.heuristic = heuristicValues[0];
+        initial.path.push_back(0);
+
+        pq.push(initial);
+
+        while (!pq.empty()) {
+            State current = pq.top();
+            pq.pop();
+
+            cout << "Current Node: " << current.city;
+            cout << " | Cost: " << current.cost;
+            cout << " | Heuristic: " << current.heuristic;
+            cout << " | Path: ";
+            for (int city : current.path) {
+                cout << city << " ";
+            }
+            cout << endl;
+
+            cout << "Queue: ";
+            priority_queue<State, vector<State>, CompareCostAStar> pqCopy = pq;
+            while (!pqCopy.empty()) {
+                State state = pqCopy.top();
+                pqCopy.pop();
+                cout << "(" << state.city << ", " << state.cost << "+" << state.heuristic << ") ";
+            }
+            cout << endl;
+
+            
+            if (current.path.size() == n) {
+                current.path.push_back(0);  
+
+                // Print the optimal path
+                cout << "Optimal Path (A*): ";
+                for (int city : current.path) {
+                    cout << city << " ";
+                }
+                cout << endl;
+
+                cout << "Total Cost: " << computeTotalCost(distanceMatrix, current.path) << endl;
+                return;
+            }
+
+            for (unsigned int i = 0; i < n; i++) {
+               
+                if (find(current.path.begin(), current.path.end(), i) == current.path.end()) {
+                    State nextState;
+                    nextState.city = i;
+                    nextState.cost = current.cost + distanceMatrix[current.city][i];
+                    nextState.heuristic = heuristicValues[nextState.city];
+                    nextState.path = current.path;
+                    nextState.path.push_back(i);
+
+                    pq.push(nextState);
+                }
+            }
+        }
+
+        cout << "No solution found!" << endl;
+    }
+};
+
+
+int main() {
+    
+    cout << "Hello World" << endl;
+    
+    vector<vector<int>> distanceMatrix = {
+        {0, 20, 42, 35},
+        {20, 0, 30, 45},
+        {42, 30, 0, 25},
+        {35, 45, 25, 0}
+    };
+
+    
+    vector<int> heuristicValues = {10, 20, 15, 25};
+
+    cout << "UCS Algorithm:" << endl;
+    UCS ucs;
+    ucs.solve(distanceMatrix);
+
+    cout << endl << "GBFS Algorithm:" << endl;
+    GBFS gbfs;
+    gbfs.solve(distanceMatrix, heuristicValues);
+
+    cout << endl << "A* Algorithm:" << endl;
+    AStar aStar;
+    aStar.solve(distanceMatrix, heuristicValues);
+
+    return 0;
+}
